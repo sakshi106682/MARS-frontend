@@ -185,17 +185,17 @@ function handleKeyPress(event) {
 // Add message to chat
 function addMessage(text, sender) {
     const messagesContainer = document.getElementById('chat-messages');
-    
+
     // Remove welcome message if present
     if (messagesContainer.querySelector('.text-center')) {
         messagesContainer.innerHTML = '';
     }
-    
+
     chatMessages.push({ text, sender });
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} message-bubble`;
-    
+
     if (sender === 'user') {
         messageDiv.innerHTML = `
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-2xl max-w-md shadow-md">
@@ -203,13 +203,15 @@ function addMessage(text, sender) {
             </div>
         `;
     } else {
+        // Render bot response as formatted markdown using marked.js
+        const html = window.marked ? marked.parse(text) : text;
         messageDiv.innerHTML = `
             <div class="bg-white px-5 py-3 rounded-2xl max-w-md shadow-md border border-gray-200">
-                <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(text)}</p>
+                <div class="text-sm text-gray-800 leading-relaxed">${html}</div>
             </div>
         `;
     }
-    
+
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
