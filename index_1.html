@@ -244,6 +244,9 @@
                         <h1 class="text-xl font-semibold text-gray-800">Research Assistant</h1>
                         <p class="text-sm text-gray-500">What is on your mind today?</p>
                     </div>
+                        <div class="ml-auto">
+                            <button id="show-docs-btn" onclick="showDocumentsModal()" class="bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-lg shadow-sm hover:shadow-md">Downloads</button>
+                        </div>
                 </div>
             </div>
 
@@ -278,5 +281,21 @@
     </div>
 
     <script src="script.js"></script>
+    <!-- Documents modal -->
+    <div id="documents-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-11/12 md:w-3/4 lg:w-1/2 max-h-[80vh] overflow-y-auto shadow-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold">Available Documents</h2>
+                <div class="space-x-2">
+                    <button id="download-selected-btn" onclick="downloadSelected()" disabled class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">Download Selected</button>
+                    <button onclick="closeDocumentsModal()" class="text-sm text-gray-600 hover:text-gray-800">Close</button>
+                </div>
+            </div>
+
+            <div id="documents-container" class="space-y-3">
+                <p class="text-sm text-gray-500">Loading documents...</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
