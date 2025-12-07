@@ -297,3 +297,149 @@ if (window.innerWidth < 1024) {
     sidebar.style.transform = 'translateX(-100%)';
     sidebarOpen = false;
 }
+
+// --- Documents list + download support ---
+let selectedDocumentIndex = null;
+let selectedDocumentName = null;
+
+function showDocumentsModal() {
+    const modal = document.getElementById('documents-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    // reset selection
+    selectedDocumentIndex = null;
+    selectedDocumentName = null;
+    const downloadBtn = document.getElementById('download-selected-btn');
+    if (downloadBtn) downloadBtn.disabled = true;
+    fetchDocuments();
+}
+
+function closeDocumentsModal() {
+    const modal = document.getElementById('documents-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+async function fetchDocuments() {
+    const container = document.getElementById('documents-container');
+    if (!container) return;
+    container.innerHTML = `<p class="text-sm text-gray-500">Loading documents...</p>`;
+
+    const listUrl = 'https://mars-multi-agent-research-system.vercel.app/documents';
+
+    try {
+        const res = await fetch(listUrl);
+        if (!res.ok) throw new Error('Failed to fetch documents list: ' + res.status);
+        const data = await res.json();
+
+        const docs = Array.isArray(data) ? data : (data.documents || []);
+        renderDocuments(docs);
+    } catch (err) {
+        console.error('Error fetching documents:', err);
+        container.innerHTML = `<p class="text-sm text-red-500">Unable to load documents. Please try again later.</p>`;
+    }
+}
+
+function renderDocuments(docs) {
+    const container = document.getElementById('documents-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!docs || docs.length === 0) {
+        container.innerHTML = `<p class="text-sm text-gray-500">No documents available.</p>`;
+        return;
+    }
+
+    docs.forEach((d, i) => {
+        const name = typeof d === 'string' ? d : (d.name || d.filename || d.title || JSON.stringify(d));
+
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-3 border rounded-lg doc-item cursor-pointer';
+        item.dataset.index = i;
+        item.dataset.name = name;
+
+        const left = document.createElement('div');
+        left.className = 'truncate mr-4';
+        left.innerHTML = `<p class="text-sm font-medium text-gray-800 truncate">${escapeHtml(name)}</p>`;
+
+        const right = document.createElement('div');
+        right.className = 'flex-shrink-0';
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700';
+        dlBtn.textContent = 'Download';
+        dlBtn.onclick = function(e) {
+            e.stopPropagation();
+            downloadReport(name);
+        };
+        right.appendChild(dlBtn);
+
+        item.appendChild(left);
+        item.appendChild(right);
+
+        item.addEventListener('click', function() {
+            selectDocument(i);
+        });
+
+        container.appendChild(item);
+    });
+}
+
+function selectDocument(index) {
+    const container = document.getElementById('documents-container');
+    if (!container) return;
+    const items = container.querySelectorAll('.doc-item');
+    items.forEach(it => it.classList.remove('border-blue-500', 'bg-blue-50'));
+
+    const selected = container.querySelector(`.doc-item[data-index="${index}"]`);
+    if (!selected) return;
+    selected.classList.add('border-blue-500', 'bg-blue-50');
+
+    selectedDocumentIndex = index;
+    selectedDocumentName = selected.dataset.name;
+
+    const downloadBtn = document.getElementById('download-selected-btn');
+    if (downloadBtn) downloadBtn.disabled = false;
+}
+
+function downloadSelected() {
+    if (!selectedDocumentName) {
+        alert('Please select a document first.');
+        return;
+    }
+    downloadReport(selectedDocumentName);
+}
+
+async function downloadReport(filename) {
+    if (!filename) return;
+    const filenameEscaped = encodeURIComponent(filename);
+    const tryUrls = [
+        `https://ars-multi-agent-research-system.vercel.app/download_report/${filenameEscaped}`,
+        `https://mars-multi-agent-research-system.vercel.app/download_report/${filenameEscaped}`
+    ];
+
+    let lastError = null;
+    for (const url of tryUrls) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+
+            const blob = await res.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+            return;
+        } catch (err) {
+            lastError = err;
+            console.warn('Download attempt failed for', url, err);
+            // try next
+        }
+    }
+
+    alert('Unable to download the file. Please try again later.');
+    console.error('Download failed for all endpoints:', lastError);
+}
